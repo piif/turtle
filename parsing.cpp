@@ -1,40 +1,11 @@
-// code related to program parsing
+#ifdef PIF_TOOL_CHAIN
+	#include <Arduino.h>
+#endif
 
-// version 0.1.0 => 00 01 00 => 100
-#define PROTOCOL_VERSION 100
-#define MAX_PROGRAM 100
+#include "parsing.h"
+#include "tools.h"
+#include "intf.h"
 
-#define CMD_START '['
-#define CMD_END   ']'
-#define CMD_MOVE  'M'
-#define CMD_TURN  'T'
-#define CMD_UP    'U'
-#define CMD_DOWN  'D'
-#define CMD_ARC   'C'
-#define CMD_WAIT  '#'
-
-/**
-- One line per instruction ended by \n (or \r\n or \r)
-- [nn = start program, protocol version nn
-  => stop current program if any
-- ] = end program
-  => store and wait button click to continue
-- Mxxx = move of xxx
-- Txxx = turn of xxx (>0 = trigo, <0 = clockwise)
-  Example : T-90
-- U = pen up
-- D = pen down
-- Cr[,a] with r = radius (>0 => to left, <0 +> to right) and a = angle (default 360°)
-  arc circle to right/left
-  Example : C-50,90
-- # = pause (wait button click)
-**/
-
-typedef struct programLine {
-	byte command; // #, M, T, U, D, C
-	long arg1;
-	long arg2;
-} ProgramLine;
 ProgramLine program[MAX_PROGRAM] = { {']', 0, 0} };
 
 // display parse error
@@ -92,7 +63,7 @@ byte handleInput(Stream &channel) {
 		}
 
 		ProgramLine *prg = &(program[line]);
-		prg->command = command;
+		prg->command = (char)command;
 
 		if (line == 0 && command != CMD_START) {
 			error(line, "first line must start with " XSTR(CMD_START));

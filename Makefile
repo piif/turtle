@@ -3,6 +3,8 @@ $(info ARDDUDE_DIR=${ARDDUDE_DIR})
 
 #ARD_CONSOLE_FLAGS := --debug
 
+MAIN_SOURCE=Turtle.ino
+
 all: bin
 
 include ${ARDDUDE_DIR}/etc/tools.mk

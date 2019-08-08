@@ -1,7 +1,25 @@
+#ifdef PIF_TOOL_CHAIN
+	#include <Arduino.h>
+	#include "setInterval/setInterval.h"
+#else
+	#include "setInterval.h"
+#endif
+
+#include "intf.h"
+
 // code related to user interface : led and button
 
 #define BUTTON 2
 #define LED 13
+
+setIntervalTimer ledTimer  = SET_INTERVAL_ERROR;
+
+void setupIntf() {
+	pinMode(BUTTON, INPUT_PULLUP);
+	pinMode(LED, OUTPUT);
+
+	ledTimer  = setInterval(SET_INTERVAL_PAUSED, updateLed, NULL);
+}
 
 // state value : '0' = off , '1' = on , 'B' = blink slowly , 'E' = blick quickly (error state)
 void setLed(char state) {
