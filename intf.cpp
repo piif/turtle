@@ -1,9 +1,5 @@
-#ifdef PIF_TOOL_CHAIN
-	#include <Arduino.h>
-	#include "setInterval/setInterval.h"
-#else
-	#include "setInterval.h"
-#endif
+#include <Arduino.h>
+#include "setInterval.h"
 
 #include "intf.h"
 
@@ -18,7 +14,7 @@ void setupIntf() {
 	pinMode(BUTTON, INPUT_PULLUP);
 	pinMode(LED, OUTPUT);
 
-	ledTimer  = setInterval(SET_INTERVAL_PAUSED, updateLed, NULL);
+	ledTimer  = setInterval(SET_INTERVAL_PAUSED, updateLed, 0);
 }
 
 // state value : '0' = off , '1' = on , 'B' = blink slowly , 'E' = blick quickly (error state)

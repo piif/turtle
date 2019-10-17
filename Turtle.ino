@@ -1,11 +1,7 @@
 // PIF_TOOL_CHAIN_OPTION: UPLOAD_OPTIONS := -c "raw,cr"
 // PIF_TOOL_CHAIN_OPTION: EXTRA_LIBS := ArduinoLibs ArduinoTools
-#ifdef PIF_TOOL_CHAIN
-	#include <Arduino.h>
-	#include "setInterval/setInterval.h"
-#else
-	#include "setInterval.h"
-#endif
+#include <Arduino.h>
+#include "setInterval.h"
 
 #define DEMO_MODE
 #ifdef DEMO_MODE
@@ -31,7 +27,7 @@ byte state = 'W';
 int step = 0;
 unsigned long substep = 0;
 
-ProgramLine *cmd = NULL;
+ProgramLine *cmd = 0;
 
 // timer callback to run program steps
 void doStep(void *, long, int) {
@@ -108,7 +104,7 @@ void setup() {
 	setupMotors();
 	setupIntf();
 
-	stepTimer = setInterval(SET_INTERVAL_PAUSED, doStep, NULL);
+	stepTimer = setInterval(SET_INTERVAL_PAUSED, doStep, 0);
 	Serial.println("setup ok, waiting for program input");
 	setLed('E');
 }

@@ -1,6 +1,4 @@
-#ifdef PIF_TOOL_CHAIN
-	#include <Arduino.h>
-#endif
+#include <Arduino.h>
 
 #include "parsing.h"
 #include "tools.h"
