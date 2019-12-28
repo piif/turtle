@@ -10,14 +10,12 @@
 	#define DEFAULT_BAUDRATE 115200
 #endif
 
+// D4 = enable motor 1
+// D5 = enable motor 2
+#define DISABLE_MOTORS  PORTD &= 0xCF
+#define ENABLE_MOTOR(m) PORTD |= ((m+1) << 4)
 // D8..D11 == PORTB 0..3
-// D4..D7  == PORTD 4..7
-// #define POLARITY ~
-#define POLARITY
-#define SET_MOTOR_1(bits) PORTB = ( (PORTB & 0xF0) | (POLARITY (bits) & 0x0F) )
-#define SET_MOTOR_2(bits) PORTD = ( (PORTD & 0x0F) | (POLARITY (bits) << 4  ) )
-#define SET_MOTOR(m, bits) if(m) { SET_MOTOR_2(bits); } else { SET_MOTOR_1(bits); }
-
+#define SET_MOTOR(bits) PORTB = ( (PORTB & 0xF0) | (bits & 0x0F) )
 
 #define STEP_A 0x01
 #define STEP_B 0x04
@@ -36,7 +34,6 @@ typedef struct motorState {
 	byte mask = 0;              // last 4 bits mask sent to motor
 } MotorState;
 
-bool remanent = false; // keep current on between steps, or just send pulses
 bool full;             // send half/full steps
 byte maxSteps;
 byte *steps;
@@ -47,7 +44,9 @@ void setMask(byte m, int d) {
 	motors[m].remaining = -1;
 	Serial.print(" -> ");
 	Serial.println(d);
-	SET_MOTOR(m, d);
+	DISABLE_MOTORS;
+	SET_MOTOR(d);
+	ENABLE_MOTOR(m);
 }
 
 void setNumber(byte m, int d) {
@@ -83,17 +82,6 @@ void setFull() {
 	maxSteps = sizeof(fullSteps) - 1;
 }
 
-void setRemanent() {
-	remanent = !remanent;
-	if (remanent) {
-		SET_MOTOR_1(motors[0].mask);
-		SET_MOTOR_2(motors[1].mask);
-	} else {
-		SET_MOTOR_1(0);
-		SET_MOTOR_2(0);
-	}
-}
-
 void motorStatus(byte m) {
 	Serial.print("Motor ");
 	Serial.println(m+1);
@@ -110,14 +98,10 @@ void status() {
 	Serial.println("N v: motor 2, launch v steps (<0 for backward");
 	Serial.println("s v: motor 1, set speed (1-1000 step/s)");
 	Serial.println("S v: motor 2, set speed");
-	Serial.println("r : set/unset remanent");
 	Serial.println("h : set half");
 	Serial.println("f : set full");
 
 	Serial.println("\nCurrent state :");
-	if (remanent) {
-		Serial.print(" remanent ,");
-	}
 	Serial.print(full ? " full" : "half");
 	Serial.println(" steps");
 	motorStatus(0);
@@ -138,10 +122,8 @@ void doStep(byte m) {
 	unsigned long now = millis();
 	if (now >= motor->nextStep) {
 		if (motor->remaining == 0) {
-			if (!remanent) {
-				SET_MOTOR(m, 0);
-			}
 			motor->remaining--;
+			DISABLE_MOTORS;
 			return;
 		}
 
@@ -151,7 +133,9 @@ void doStep(byte m) {
 		Serial.print(motor->step);
 		Serial.print(" -> ");
 		Serial.println(motor->mask);
-		SET_MOTOR(m, motor->mask);
+		DISABLE_MOTORS;
+		SET_MOTOR(motor->mask);
+		ENABLE_MOTOR(m);
 
 		motor->remaining--;
 		motor->nextStep = now + motor->stepDelay;
@@ -166,7 +150,6 @@ InputItem inputs[] = {
 	{ 'M', 'I', (void *)setMask2 },
 	{ 'N', 'I', (void *)setNumber2 },
 	{ 'S', 'I', (void *)setSpeed2  },
-	{ 'r', 'f', (void *)setRemanent },
 	{ 'h', 'f', (void *)setHalf },
 	{ 'f', 'f', (void *)setFull }
 };
@@ -175,15 +158,9 @@ void setup() {
 	Serial.begin(DEFAULT_BAUDRATE);
 
 	setFull();
-//	pinMode(A2, OUTPUT);
-//	pinMode(A3, OUTPUT);
-//	pinMode(A4, OUTPUT);
-//	pinMode(A5, OUTPUT);
 
 	pinMode(4, OUTPUT);
 	pinMode(5, OUTPUT);
-	pinMode(6, OUTPUT);
-	pinMode(7, OUTPUT);
 
 	pinMode(8, OUTPUT);
 	pinMode(9, OUTPUT);
@@ -195,7 +172,8 @@ void setup() {
 }
 
 void loop() {
+	static byte m = 0;
 	handleInput();
-	doStep(0);
-	doStep(1);
+	doStep(m);
+	m ^= 1;
 }
