@@ -10,14 +10,17 @@
 	#define DEFAULT_BAUDRATE 115200
 #endif
 
-// D8..D11 == PORTB 0..3
-// D4..D7  == PORTD 4..7
+// motor 1 pins = D4..D7  == PORTD 4..7
+// motor 2 pins = D8..D11 == PORTB 0..3
 // #define POLARITY ~
 #define POLARITY
-#define SET_MOTOR_1(bits) PORTB = ( (PORTB & 0xF0) | (POLARITY (bits) & 0x0F) )
-#define SET_MOTOR_2(bits) PORTD = ( (PORTD & 0x0F) | (POLARITY (bits) << 4  ) )
+#define SET_MOTOR_1(bits) PORTD = ( (PORTD & 0x0F) | (POLARITY (bits) << 4  ) )
+#define SET_MOTOR_2(bits) PORTB = ( (PORTB & 0xF0) | (POLARITY (bits) & 0x0F) )
 #define SET_MOTOR(m, bits) if(m) { SET_MOTOR_2(bits); } else { SET_MOTOR_1(bits); }
 
+// D2 / D3 = enable motor 1 / 2
+#define ENABLE_MOTOR(m)  PORTD |= (4 << (m))
+#define DISABLE_MOTOR(m) PORTD &= ~(4 << (m))
 
 #define STEP_A 0x01
 #define STEP_B 0x04
@@ -47,7 +50,10 @@ void setMask(byte m, int d) {
 	motors[m].remaining = -1;
 	Serial.print(" -> ");
 	Serial.println(d);
+	ENABLE_MOTOR(m);
 	SET_MOTOR(m, d);
+	delay(5);
+	DISABLE_MOTOR(m);
 }
 
 void setNumber(byte m, int d) {
@@ -58,6 +64,7 @@ void setNumber(byte m, int d) {
 		motors[m].remaining = -d;
 		motors[m].rotateRight = false;
 	}
+	ENABLE_MOTOR(m);
 }
 
 void setSpeed(byte m, int d) {
@@ -86,11 +93,11 @@ void setFull() {
 void setRemanent() {
 	remanent = !remanent;
 	if (remanent) {
-		SET_MOTOR_1(motors[0].mask);
-		SET_MOTOR_2(motors[1].mask);
+		ENABLE_MOTOR(0);
+		ENABLE_MOTOR(1);
 	} else {
-		SET_MOTOR_1(0);
-		SET_MOTOR_2(0);
+		DISABLE_MOTOR(0);
+		DISABLE_MOTOR(1);
 	}
 }
 
@@ -139,7 +146,7 @@ void doStep(byte m) {
 	if (now >= motor->nextStep) {
 		if (motor->remaining == 0) {
 			if (!remanent) {
-				SET_MOTOR(m, 0);
+				DISABLE_MOTOR(m);
 			}
 			motor->remaining--;
 			return;
@@ -175,10 +182,9 @@ void setup() {
 	Serial.begin(DEFAULT_BAUDRATE);
 
 	setFull();
-//	pinMode(A2, OUTPUT);
-//	pinMode(A3, OUTPUT);
-//	pinMode(A4, OUTPUT);
-//	pinMode(A5, OUTPUT);
+
+	pinMode(2, OUTPUT);
+	pinMode(3, OUTPUT);
 
 	pinMode(4, OUTPUT);
 	pinMode(5, OUTPUT);
